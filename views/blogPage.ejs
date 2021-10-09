@@ -1,0 +1,17 @@
+
+<%-include("./partials/header") -%>
+
+<h1>Home</h1>
+<p><%= homeContent %></p>
+<% console.log(posts) %>
+<% posts.forEach((x)=>{ %>
+<h1><%=x.title%></h1>
+<p>
+  <%=x.postBody.substr(0,200)+"...."%>
+  <a href="./posts/<%=x.title%>">Read More</a>
+</p>
+<% }) %>
+<form class="" method="get" action="./compose">
+<button " class="btn btn-primary" type="submit" name="button"" >Compose</button>
+</form>
+<%-include("./partials/footer") -%>
