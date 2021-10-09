@@ -19,21 +19,90 @@ app.use(express.static("public"));
 
 mongoose.connect("mongodb://localhost:27017/BlogDB",{useNewUrlParser: true});
 
-const postSchema=new mongoose.Schema({
-  title: String,
-  postBody: String
+// const postSchema=new mongoose.Schema({
+//   title: String,
+//   postBody: String
+// })
+const UserSchema=new mongoose.Schema({
+  email: String,
+  password: String,
+  posts: Array,
+  _ids: String
 })
 
-const Post=mongoose.model('Post',postSchema);
-
+//const Post=mongoose.model('Post',postSchema);
+const User=mongoose.model("User",UserSchema);
 
 app.get("/",(req,res)=>{
-  Post.find({},(err,posts)=>{
-    res.render("home",
-    {
-      homeContent:homeStartingContent, 
-      posts: posts
-    });
+  res.render("home");
+  // Post.find({},(err,posts)=>{
+  //   res.render("home",
+  //   {
+  //     homeContent:homeStartingContent, 
+  //     posts: posts
+  //   });
+  // })
+})
+app.get("/login",(req,res)=>{
+  res.render("login")
+})
+app.get("/register",(req,res)=>{
+  res.render("register")
+})
+app.post("/register",(req,res)=>{
+  const newUser=new User({
+    email: req.body.username,
+    password: req.body.password,
+    posts: [],
+    _ids: "a"
+  });
+  newUser._ids=newUser._id.valueOf();
+  newUser.save((err)=>{
+    if(err){
+      console.log(err);
+    }
+    else{
+      res.redirect("accounts/"+newUser._ids+"/home");
+    }
+  });
+})
+app.post("/login",(req,res)=>{
+  const username=req.body.username;
+  const password=req.body.password;
+  User.findOne({email:username},(err,foundUser)=>{
+    if(err){
+      console.log(err);
+    }
+    else{
+      if(foundUser){
+        if(foundUser.password===password){
+          res.redirect("accounts/"+toString(foundUser._ids)+"/home");
+        }
+        else{
+          res.redirect("/login");
+        }
+      }
+      else{
+        res.redirect("/register");
+      }
+    }
+  })
+})
+app.get("/accounts/:UserId/home",(req,res)=>{
+  var x=0;
+  User.findOne({_ids:req.params.UserId},(err,foundUser)=>{
+    if(err){
+      console.log(err);
+    }
+    else{
+      x=1;
+      res.render("blogPage",{
+        homeContent: homeStartingContent,
+        posts: foundUser.posts,
+        UserId: req.params.UserId
+      })
+      //console.log(reqPosts);
+    }
   })
 })
 
@@ -45,31 +114,38 @@ app.get("/contact",(req,res)=>{
   res.render("contact",{contactContent:contactContent})
 })
 
-app.get("/compose",(req,res)=>{
+app.get("/accounts/:UserId/compose",(req,res)=>{
   res.render("compose");
 })
+//app.get("/compose",(req))
 
-app.post("/compose",(req,res)=>{
+app.post("/accounts/:UserId/compose",(req,res)=>{
   const post = {
     title : req.body.postTitle,
     postBody : req.body.postBody
   }
-  const newPost=new Post(post);
-  newPost.save((err)=>{
+  User.findOne({_id:req.params.UserId},(err,foundUser)=>{
     if(err){
       console.log(err);
     }
     else{
-      res.redirect("/");
+      foundUser.posts.push(post);
+      foundUser.save();
     }
   })
+  //console.log("redirected");
+  res.redirect("/accounts/"+req.params.UserId+"/home");
+  //const newPost=new Post(post);
+  
 })
-app.get("/posts/:postId",(req,res)=>{
-  const postId=req.params.postId;
-  Post.find({},(err,posts)=>{
-    posts.forEach(post=>{
-      if(post._id==postId){
-        res.render("post",{post: post});
+app.get("/accounts/:UserId/posts/:title",(req,res)=>{
+  const title=req.params.title;
+  const UserId=req.params.UserId;
+  User.findOne({_id:UserId},(err,foundUser)=>{
+    const posts=foundUser.posts;
+    posts.forEach((x)=>{
+      if(x.title==title){
+        res.render("post",{post:x})
       }
     })
   })
